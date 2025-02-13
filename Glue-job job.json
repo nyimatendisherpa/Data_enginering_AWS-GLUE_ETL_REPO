@@ -1,0 +1,112 @@
+{
+	"jobConfig": {
+		"name": "Glue-job job",
+		"description": "",
+		"role": "arn:aws:iam::820242939837:role/glue-full-access",
+		"command": "glueetl",
+		"version": "5.0",
+		"runtime": null,
+		"workerType": "G.1X",
+		"numberOfWorkers": 2,
+		"maxCapacity": 2,
+		"jobRunQueuingEnabled": false,
+		"maxRetries": 0,
+		"timeout": 10,
+		"maxConcurrentRuns": 1,
+		"security": "none",
+		"scriptName": "Glue-job job.py",
+		"scriptLocation": "s3://glue-bucket-nyima/script/",
+		"language": "python-3",
+		"spark": true,
+		"sparkConfiguration": "standard",
+		"jobParameters": [],
+		"tags": [],
+		"jobMode": "DEVELOPER_MODE",
+		"createdOn": "2025-02-13T06:28:58.848Z",
+		"developerMode": false,
+		"connectionsList": [],
+		"temporaryDirectory": "s3://aws-glue-assets-820242939837-us-west-2/temporary/",
+		"logging": true,
+		"glueHiveMetastore": true,
+		"etlAutoTuning": true,
+		"metrics": true,
+		"observabilityMetrics": true,
+		"bookmark": "job-bookmark-disable",
+		"sparkPath": "s3://glue-bucket-nyima/logs/",
+		"flexExecution": false,
+		"minFlexWorkers": null,
+		"sourceControlDetails": {
+			"Provider": "GITHUB",
+			"Repository": "",
+			"Branch": ""
+		},
+		"maintenanceWindow": null
+	},
+	"dag": {
+		"node-1739428237455": {
+			"nodeId": "node-1739428237455",
+			"dataPreview": false,
+			"previewAmount": 0,
+			"inputs": [
+				"node-1739428197939"
+			],
+			"name": "Amazon S3",
+			"generatedNodeName": "AmazonS3_node1739428237455",
+			"classification": "DataSink",
+			"type": "S3",
+			"streamingBatchInterval": 100,
+			"format": "glueparquet",
+			"compression": "snappy",
+			"path": "s3://glue-bucket-nyima/output/",
+			"partitionKeys": [],
+			"schemaChangePolicy": {
+				"enableUpdateCatalog": false,
+				"updateBehavior": null,
+				"database": null,
+				"table": null
+			},
+			"updateCatalogOptions": "none",
+			"autoDataQuality": {
+				"isEnabled": true,
+				"evaluationContext": "EvaluateDataQuality_node1739427837127"
+			},
+			"calculatedType": "",
+			"codeGenVersion": 2
+		},
+		"node-1739427923182": {
+			"nodeId": "node-1739427923182",
+			"dataPreview": false,
+			"previewAmount": 0,
+			"inputs": [],
+			"name": "AWS Glue Data Catalog",
+			"generatedNodeName": "AWSGlueDataCatalog_node1739427923182",
+			"classification": "DataSource",
+			"type": "Catalog",
+			"isCatalog": true,
+			"database": "nyimaglue",
+			"table": "tabletesttest__1__csv",
+			"calculatedType": "",
+			"runtimeParameters": [],
+			"codeGenVersion": 2
+		},
+		"node-1739428197939": {
+			"nodeId": "node-1739428197939",
+			"dataPreview": false,
+			"previewAmount": 0,
+			"inputs": [
+				"node-1739427923182"
+			],
+			"name": "Drop Fields",
+			"generatedNodeName": "DropFields_node1739428197939",
+			"classification": "Transform",
+			"type": "DropFields",
+			"paths": [],
+			"parentsValid": true,
+			"calculatedType": "",
+			"codeGenVersion": 2
+		}
+	},
+	"hasBeenSaved": false,
+	"usageProfileName": null,
+	"script": "import sys\nfrom awsglue.transforms import *\nfrom awsglue.utils import getResolvedOptions\nfrom pyspark.context import SparkContext\nfrom awsglue.context import GlueContext\nfrom awsglue.job import Job\nfrom awsgluedq.transforms import EvaluateDataQuality\n\nargs = getResolvedOptions(sys.argv, ['JOB_NAME'])\nsc = SparkContext()\nglueContext = GlueContext(sc)\nspark = glueContext.spark_session\njob = Job(glueContext)\njob.init(args['JOB_NAME'], args)\n\n# Default ruleset used by all target nodes with data quality enabled\nDEFAULT_DATA_QUALITY_RULESET = \"\"\"\n    Rules = [\n        ColumnCount > 0\n    ]\n\"\"\"\n\n# Script generated for node AWS Glue Data Catalog\nAWSGlueDataCatalog_node1739427923182 = glueContext.create_dynamic_frame.from_catalog(database=\"nyimaglue\", table_name=\"tabletesttest__1__csv\", transformation_ctx=\"AWSGlueDataCatalog_node1739427923182\")\n\n# Script generated for node Drop Fields\nDropFields_node1739428197939 = DropFields.apply(frame=AWSGlueDataCatalog_node1739427923182, paths=[], transformation_ctx=\"DropFields_node1739428197939\")\n\n# Script generated for node Amazon S3\nEvaluateDataQuality().process_rows(frame=DropFields_node1739428197939, ruleset=DEFAULT_DATA_QUALITY_RULESET, publishing_options={\"dataQualityEvaluationContext\": \"EvaluateDataQuality_node1739427837127\", \"enableDataQualityResultsPublishing\": True}, additional_options={\"dataQualityResultsPublishing.strategy\": \"BEST_EFFORT\", \"observations.scope\": \"ALL\"})\nAmazonS3_node1739428237455 = glueContext.write_dynamic_frame.from_options(frame=DropFields_node1739428197939, connection_type=\"s3\", format=\"glueparquet\", connection_options={\"path\": \"s3://glue-bucket-nyima/output/\", \"partitionKeys\": []}, format_options={\"compression\": \"snappy\"}, transformation_ctx=\"AmazonS3_node1739428237455\")\n\njob.commit()"
+}
